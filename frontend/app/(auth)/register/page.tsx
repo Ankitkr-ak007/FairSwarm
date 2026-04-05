@@ -69,14 +69,10 @@ export default function RegisterPage() {
         organization: values.organization,
       });
       const payload = response.data as {
-        access_token: string;
-        csrf_token?: string;
         user?: { id: string; email: string; full_name?: string | null; organization?: string | null };
       };
 
       setApiAuth({
-        accessToken: payload.access_token,
-        csrfToken: payload.csrf_token,
         user: payload.user,
       });
       notify({ title: "Account created", description: "Welcome to FairSwarm.", variant: "success" });

@@ -89,6 +89,38 @@ CREATE TABLE token_blocklist (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 8. Refresh Tokens Table
+CREATE TABLE refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(255) UNIQUE NOT NULL,
+    token_jti VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. User Rate Limit Counters
+CREATE TABLE rate_limit_counters (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    action VARCHAR(100) NOT NULL,
+    window_start BIGINT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, action, window_start)
+);
+
+-- 10. Runtime Config for key rotation
+CREATE TABLE runtime_config (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    config_key VARCHAR(128) UNIQUE NOT NULL,
+    config_value TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Triggers for updated_at
 CREATE OR REPLACE FUNCTION update_timestamp()
 RETURNS TRIGGER AS $$
@@ -122,6 +154,10 @@ CREATE INDEX idx_ai_swarm_results_created_at ON ai_swarm_results(created_at);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX idx_token_blocklist_user_id ON token_blocklist(user_id);
 CREATE INDEX idx_token_blocklist_expires_at ON token_blocklist(expires_at);
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
+CREATE INDEX idx_rate_limit_counters_user_action_window ON rate_limit_counters(user_id, action, window_start);
+CREATE INDEX idx_runtime_config_key ON runtime_config(config_key);
 
 -- Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -130,6 +166,9 @@ ALTER TABLE analyses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bias_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_swarm_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE token_blocklist ENABLE ROW LEVEL SECURITY;
+ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rate_limit_counters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE runtime_config ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 CREATE POLICY "Users can view own data" ON users FOR SELECT USING (auth.uid() = id);
@@ -153,3 +192,5 @@ CREATE POLICY "Users can manage own ai swarm results" ON ai_swarm_results FOR AL
 USING (EXISTS (SELECT 1 FROM analyses WHERE analyses.id = ai_swarm_results.analysis_id AND analyses.user_id = auth.uid()));
 
 CREATE POLICY "Users can view own token blocklist" ON token_blocklist FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own refresh tokens" ON refresh_tokens FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own rate limit counters" ON rate_limit_counters FOR ALL USING (auth.uid() = user_id);

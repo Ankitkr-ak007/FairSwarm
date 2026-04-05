@@ -12,6 +12,7 @@ import { useToast } from "@/components/providers/ToastProvider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeApiError, reportsApi } from "@/lib/api";
+import { sanitizeText } from "@/lib/sanitize";
 import type { ReportFilters, ReportListItem } from "@/types";
 
 type SortOption = "newest" | "worst_bias_score" | "best_bias_score";
@@ -82,8 +83,8 @@ function ReportCard({
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold text-white">{item.project_name}</h3>
-        <p className="text-sm text-slate-300">Dataset: {item.dataset_name}</p>
+        <h3 className="text-lg font-semibold text-white">{sanitizeText(item.project_name)}</h3>
+        <p className="text-sm text-slate-300">Dataset: {sanitizeText(item.dataset_name)}</p>
         <p className="text-xs text-slate-400">{new Date(item.created_at).toLocaleString()}</p>
       </div>
 

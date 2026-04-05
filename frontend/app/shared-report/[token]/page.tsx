@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeApiError, reportsApi } from "@/lib/api";
+import { sanitizeText } from "@/lib/sanitize";
 
 export default function SharedReportPage() {
   const { token } = useParams<{ token: string }>();
@@ -54,7 +55,7 @@ export default function SharedReportPage() {
     <div className="mx-auto min-h-screen w-full max-w-5xl px-4 py-8">
       <Card className="space-y-4 p-6">
         <p className="fs-section-title">Public FairSwarm Report</p>
-        <h1 className="text-3xl font-semibold text-white">{payload.analysis?.id}</h1>
+        <h1 className="text-3xl font-semibold text-white">{sanitizeText(payload.analysis?.id)}</h1>
         <p className="text-sm text-slate-300">Overall score: {Number(payload.overall_score ?? 0).toFixed(2)}</p>
         <p className="text-sm text-slate-300">Fairness grade: {payload.fairness_grade}</p>
 
@@ -63,7 +64,7 @@ export default function SharedReportPage() {
           <ul className="mt-2 space-y-1">
             {(payload.top_findings ?? []).map((finding: Record<string, unknown>, index: number) => (
               <li key={index}>
-                {String(finding.sensitive_attribute)} / {String(finding.metric_name)} / {String(finding.value)}
+                {sanitizeText(finding.sensitive_attribute)} / {sanitizeText(finding.metric_name)} / {sanitizeText(finding.value)}
               </li>
             ))}
           </ul>

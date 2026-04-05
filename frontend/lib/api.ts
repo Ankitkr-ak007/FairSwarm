@@ -19,9 +19,17 @@ import type {
 } from "@/types";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1",
+  baseURL: "/api/proxy",
   timeout: 30_000,
+  withCredentials: true,
 });
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 function notifySessionExpired() {
   if (typeof window === "undefined") return;
@@ -34,13 +42,12 @@ api.interceptors.request.use((config) => {
   }
 
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("fairswarm_access_token");
-    const csrfToken = localStorage.getItem("fairswarm_csrf_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    if (csrfToken) {
-      config.headers["x-csrf-token"] = csrfToken;
+    const method = config.method?.toUpperCase() ?? "GET";
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+      const csrfToken = readCookie("fairswarm_csrf_token");
+      if (csrfToken) {
+        config.headers["x-csrf-token"] = csrfToken;
+      }
     }
   }
   return config;
@@ -64,9 +71,6 @@ api.interceptors.response.use(
     }
 
     if (typeof window !== "undefined" && error.response?.status === 401) {
-      localStorage.removeItem("fairswarm_access_token");
-      localStorage.removeItem("fairswarm_csrf_token");
-      localStorage.removeItem("fairswarm_user");
       notifySessionExpired();
     }
 
@@ -75,6 +79,10 @@ api.interceptors.response.use(
 );
 
 export function normalizeApiError(error: unknown): string {
+  if (process.env.NODE_ENV === "production") {
+    return "Something went wrong. Please try again.";
+  }
+
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<{ detail?: string }>;
     return axiosError.response?.data?.detail ?? axiosError.message;

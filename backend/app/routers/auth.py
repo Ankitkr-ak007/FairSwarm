@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import secrets
 from datetime import UTC, datetime
 from typing import Any
@@ -17,8 +16,12 @@ from ..core.security import (
     get_current_user,
     hash_password,
     hash_token,
+    is_refresh_token_valid,
     is_token_blocklisted,
     oauth2_scheme,
+    revoke_refresh_token,
+    store_refresh_token,
+    validate_password_policy,
     verify_password,
 )
 
@@ -46,21 +49,6 @@ class ProfileUpdateRequest(BaseModel):
     organization: str | None = None
 
 
-def _validate_password_strength(password: str) -> None:
-    checks = {
-        "minimum 8 characters": len(password) >= 8,
-        "one uppercase letter": bool(re.search(r"[A-Z]", password)),
-        "one number": bool(re.search(r"\d", password)),
-        "one special character": bool(re.search(r"[^\w\s]", password)),
-    }
-    failed = [rule for rule, passed in checks.items() if not passed]
-    if failed:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Password must include {', '.join(failed)}.",
-        )
-
-
 def _set_csrf_cookie(response: Response, csrf_token: str) -> None:
     response.set_cookie(
         key="csrf_token",
@@ -84,7 +72,7 @@ def _serialize_user(user: dict[str, Any]) -> dict[str, Any]:
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, response: Response) -> dict[str, Any]:
-    _validate_password_strength(payload.password)
+    validate_password_policy(payload.password)
 
     try:
         supabase = get_supabase_client()
@@ -137,6 +125,8 @@ async def register(payload: RegisterRequest, response: Response) -> dict[str, An
     token_payload = {"sub": user["email"], "user_id": str(user["id"])}
     access_token = create_access_token(token_payload)
     refresh_token = create_refresh_token(token_payload)
+    refresh_token_data = decode_token(refresh_token)
+    store_refresh_token(str(user["id"]), refresh_token, refresh_token_data)
     csrf_token = secrets.token_urlsafe(32)
     _set_csrf_cookie(response, csrf_token)
 
@@ -181,6 +171,8 @@ async def login(payload: LoginRequest, response: Response) -> dict[str, Any]:
     token_payload = {"sub": user["email"], "user_id": str(user["id"])}
     access_token = create_access_token(token_payload)
     refresh_token = create_refresh_token(token_payload)
+    refresh_token_data = decode_token(refresh_token)
+    store_refresh_token(str(user["id"]), refresh_token, refresh_token_data)
     csrf_token = secrets.token_urlsafe(32)
     _set_csrf_cookie(response, csrf_token)
 
@@ -201,6 +193,12 @@ async def refresh_token(payload: RefreshRequest, response: Response) -> dict[str
             detail="Refresh token has been revoked.",
         )
 
+    if not is_refresh_token_valid(payload.refresh_token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token is inactive or expired.",
+        )
+
     token_data = decode_token(payload.refresh_token)
     if token_data.token_type != "refresh":
         raise HTTPException(
@@ -210,11 +208,16 @@ async def refresh_token(payload: RefreshRequest, response: Response) -> dict[str
 
     token_payload = {"sub": token_data.email, "user_id": token_data.user_id}
     access_token = create_access_token(token_payload)
+    revoke_refresh_token(payload.refresh_token)
+    new_refresh_token = create_refresh_token(token_payload)
+    new_refresh_data = decode_token(new_refresh_token)
+    store_refresh_token(token_data.user_id, new_refresh_token, new_refresh_data)
     csrf_token = secrets.token_urlsafe(32)
     _set_csrf_cookie(response, csrf_token)
 
     return {
         "access_token": access_token,
+        "refresh_token": new_refresh_token,
         "token_type": "bearer",
         "csrf_token": csrf_token,
     }
@@ -288,6 +291,12 @@ async def logout(
                 "created_at": datetime.now(UTC).isoformat(),
             }
         ).execute()
+        supabase.table("refresh_tokens").update(
+            {
+                "is_active": False,
+                "updated_at": datetime.now(UTC).isoformat(),
+            }
+        ).eq("user_id", current_user["id"]).eq("is_active", True).execute()
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

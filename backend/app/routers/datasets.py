@@ -12,7 +12,15 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 
 from ..config import settings
 from ..core.database import extract_list, extract_single, get_supabase_client
-from ..core.security import get_current_user
+from ..core.security import (
+	UPLOADS_PER_DAY_LIMIT,
+	detect_csv_injection,
+	detect_excel_embedded_scripts,
+	enforce_user_rate_limit,
+	get_current_user,
+	sanitize_column_names,
+	validate_upload_magic_bytes,
+)
 from ..services.dataset_processor import DatasetProcessor
 
 router = APIRouter()
@@ -61,6 +69,31 @@ async def upload_dataset(
 			detail=f"File exceeds {settings.MAX_FILE_SIZE_MB}MB limit.",
 		)
 
+	validate_upload_magic_bytes(file.filename or "", file_bytes)
+	if extension == "csv":
+		injection_issues = detect_csv_injection(file_bytes)
+		if injection_issues:
+			raise HTTPException(
+				status_code=status.HTTP_400_BAD_REQUEST,
+				detail=(
+					"Potential CSV injection detected. Remove cells starting with =, +, -, or @. "
+					f"First issue at row {injection_issues[0]['row']} col {injection_issues[0]['column']}."
+				),
+			)
+
+	if extension == "xlsx" and detect_excel_embedded_scripts(file_bytes):
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Excel file contains embedded scripts/macros and cannot be processed.",
+		)
+
+	enforce_user_rate_limit(
+		user_id=current_user["id"],
+		action="dataset_upload",
+		limit=UPLOADS_PER_DAY_LIMIT,
+		window_seconds=24 * 60 * 60,
+	)
+
 	storage_path = f"{current_user['id']}/{uuid4()}.{extension}"
 	temp_path: str | None = None
 
@@ -80,6 +113,7 @@ async def upload_dataset(
 			temp_path = temp_file.name
 
 		df = processor.load_dataset(temp_path, extension)
+		df.columns = sanitize_column_names([str(column) for column in df.columns])
 		profile = processor.profile_dataset(df)
 		sensitive_columns = processor.detect_sensitive_columns(df)
 		validation = processor.validate_dataset(df)

@@ -123,7 +123,7 @@ class DatasetProcessor:
         return sorted(detected)
 
     def detect_target_column(self, df: pd.DataFrame) -> str | None:
-        lowered_map = {str(col).lower(): col for col in df.columns}
+        lowered_map: dict[str, str] = {str(col).lower(): str(col) for col in df.columns}
 
         for keyword in self._target_keywords:
             for lowered, original in lowered_map.items():
@@ -296,8 +296,8 @@ class DatasetProcessor:
         positive_tokens = {"1", "true", "yes", "approved", "accept", "accepted", "hired", "pass", "passed"}
         negative_tokens = {"0", "false", "no", "rejected", "reject", "denied", "failed"}
 
-        unique_values = set(normalized.dropna().unique().tolist())
-        if unique_values and unique_values.issubset(positive_tokens.union(negative_tokens)):
+        token_values = set(normalized.dropna().unique().tolist())
+        if token_values and token_values.issubset(positive_tokens.union(negative_tokens)):
             return normalized.apply(lambda value: 1 if value in positive_tokens else 0).astype(int)
 
         values = sorted(normalized.dropna().unique().tolist())

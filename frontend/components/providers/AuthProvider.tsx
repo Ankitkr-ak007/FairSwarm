@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { User } from "@supabase/supabase-js";
 
+import { authApi } from "@/lib/api";
 import { getSupabaseClient } from "@/lib/supabase";
 import type { UserProfile } from "@/types";
 
@@ -20,7 +21,7 @@ type AuthContextValue = {
   csrfToken: string | null;
   isLoading: boolean;
   setApiAuth: (payload: {
-    accessToken: string;
+    accessToken?: string;
     csrfToken?: string;
     user?: UserProfile | null;
   }) => void;
@@ -29,8 +30,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const ACCESS_TOKEN_KEY = "fairswarm_access_token";
-const CSRF_TOKEN_KEY = "fairswarm_csrf_token";
 const USER_KEY = "fairswarm_user";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -46,12 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const storedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-    const storedCsrf = localStorage.getItem(CSRF_TOKEN_KEY);
     const storedUser = localStorage.getItem(USER_KEY);
 
-    setAccessToken(storedToken);
-    setCsrfToken(storedCsrf);
+    setAccessToken(null);
+    setCsrfToken(null);
 
     if (storedUser) {
       try {
@@ -75,8 +72,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSupabaseUser(session?.user ?? null);
       }).data.subscription;
     } catch {
-      setIsLoading(false);
+      // Supabase auth is optional for core app auth.
     }
+
+    authApi
+      .me()
+      .then((response) => {
+        const user = response.data.user as UserProfile | undefined;
+        if (user) {
+          setProfile(user);
+          localStorage.setItem(USER_KEY, JSON.stringify(user));
+        }
+      })
+      .finally(() => setIsLoading(false));
 
     return () => {
       subscription?.unsubscribe();
@@ -84,17 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setApiAuth = (payload: {
-    accessToken: string;
+    accessToken?: string;
     csrfToken?: string;
     user?: UserProfile | null;
   }) => {
-    setAccessToken(payload.accessToken);
-    localStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
-
-    if (payload.csrfToken) {
-      setCsrfToken(payload.csrfToken);
-      localStorage.setItem(CSRF_TOKEN_KEY, payload.csrfToken);
-    }
+    setAccessToken(null);
+    setCsrfToken(null);
 
     if (payload.user) {
       setProfile(payload.user);
@@ -106,8 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
     setCsrfToken(null);
     setProfile(null);
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(CSRF_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
   };
 

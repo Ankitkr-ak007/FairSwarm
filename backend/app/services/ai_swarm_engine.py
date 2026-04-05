@@ -52,6 +52,10 @@ class AISwarmEngine:
 
     _SEVERITY_SCORE = {"low": 1.0, "medium": 2.0, "high": 3.0, "critical": 4.0}
 
+    def __init__(self) -> None:
+        self._api_key_cache: dict[str, str] = {}
+        self._api_key_cache_fetched_at: float = 0.0
+
     async def run_swarm_analysis(
         self,
         analysis_id: str,
@@ -610,15 +614,60 @@ class AISwarmEngine:
         return raw
 
     def _get_api_key(self, env_name: str) -> str:
+        rotated_key = self._get_rotated_api_key(env_name)
+        if rotated_key:
+            return rotated_key
+
         key = getattr(settings, env_name, None)
         if not key:
             raise RuntimeError(f"Missing required API key: {env_name}")
         return str(key)
 
+    def _get_rotated_api_key(self, env_name: str) -> str | None:
+        now = perf_counter()
+        if self._api_key_cache and (now - self._api_key_cache_fetched_at) < 60:
+            return self._api_key_cache.get(env_name)
+
+        config_key_map = {
+            "NVIDIA_API_KEY": "nvidia_api_key",
+            "GOOGLE_AI_KEY": "google_ai_key",
+            "GROQ_API_KEY": "groq_api_key",
+            "HF_TOKEN": "hf_token",
+        }
+        requested_config_keys = list(config_key_map.values())
+
+        try:
+            supabase = get_supabase_client()
+            result = (
+                supabase.table("runtime_config")
+                .select("config_key,config_value,is_active")
+                .in_("config_key", requested_config_keys)
+                .eq("is_active", True)
+                .execute()
+            )
+
+            cache: dict[str, str] = {}
+            for row in getattr(result, "data", []) or []:
+                config_key = str(row.get("config_key", "")).strip()
+                config_value = str(row.get("config_value", "")).strip()
+                if not config_key or not config_value:
+                    continue
+
+                for env_key, mapped_key in config_key_map.items():
+                    if mapped_key == config_key:
+                        cache[env_key] = config_value
+
+            self._api_key_cache = cache
+            self._api_key_cache_fetched_at = now
+            return cache.get(env_name)
+        except Exception as exc:
+            logger.debug("Runtime API key lookup failed; using env fallback (%s)", type(exc).__name__)
+            return None
+
     def _mask_secret(self, value: str) -> str:
         if len(value) <= 8:
             return "****"
-        return f"{value[:2]}***{value[-4:]}"
+        return f"{value[:4]}***"
 
     def _audit_log(self, action: str, user_id: str | None, analysis_id: str | None) -> None:
         resource_id: str | None = None

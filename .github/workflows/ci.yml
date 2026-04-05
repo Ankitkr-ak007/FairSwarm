@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test-and-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest with coverage
+        id: coverage
+        working-directory: backend
+        run: pytest
+
+      - name: Run ruff
+        working-directory: backend
+        run: ruff check app tests
+
+      - name: Run mypy (informational)
+        continue-on-error: true
+        working-directory: backend
+        run: mypy app/services/dataset_processor.py app/services/fairness_metrics.py
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run TypeScript type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Run Next build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Extract coverage percent
+        id: covpct
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('backend/coverage.xml')
+          root = tree.getroot()
+          line_rate = float(root.attrib.get('line-rate', '0'))
+          pct = round(line_rate * 100, 2)
+          print(f"coverage={pct}")
+          with open("$GITHUB_OUTPUT", "a", encoding="utf-8") as fh:
+              fh.write(f"coverage={pct}\n")
+          PY
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: coverage-report
+          message: |
+            FairSwarm backend coverage: **${{ steps.covpct.outputs.coverage }}%**
+            Minimum required: **80%**

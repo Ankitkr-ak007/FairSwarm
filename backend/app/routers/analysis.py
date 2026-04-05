@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from ..config import settings
 from ..core.database import extract_list, extract_single, get_supabase_client
 from ..core.realtime import analysis_ws_manager
-from ..core.security import get_current_user
+from ..core.security import ANALYSES_PER_HOUR_LIMIT, enforce_user_rate_limit, get_current_user
 from ..services.ai_swarm_engine import AISwarmEngine
 from ..services.dataset_processor import DatasetProcessor
 from ..services.fairness_metrics import FairnessMetricsEngine
@@ -207,6 +207,13 @@ async def start_analysis(
 			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
 			detail="At least one sensitive column is required.",
 		)
+
+	enforce_user_rate_limit(
+		user_id=current_user["id"],
+		action="analysis_start",
+		limit=ANALYSES_PER_HOUR_LIMIT,
+		window_seconds=60 * 60,
+	)
 
 	try:
 		supabase = get_supabase_client()

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build: 
@@ -20,9 +18,6 @@ services:
       - HF_TOKEN=${HF_TOKEN}
       - ENVIRONMENT=development
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    depends_on:
-      - frontend
-
   frontend:
     build:
       context: ./frontend
@@ -33,6 +28,9 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_WS_BASE_URL=ws://localhost:8000
+      - BACKEND_INTERNAL_URL=http://backend:8000/api/v1
+    depends_on:
+      - backend
     command: npm run dev

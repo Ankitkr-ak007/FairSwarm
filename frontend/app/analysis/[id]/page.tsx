@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress";
 import { downloadReport, getAnalysis, normalizeApiError, swarmApi } from "@/lib/api";
+import { sanitizeText } from "@/lib/sanitize";
 import type { AnalysisDetailResponse, FairnessGrade, MetricResult, SwarmAgentResult } from "@/types";
 
 const BiasGauge = dynamic(() => import("@/components/charts/BiasGauge").then((mod) => mod.BiasGauge), {
@@ -247,7 +248,7 @@ export default function AnalysisDetailPage() {
                   <span className="text-sm text-slate-400">{Math.round(progressValue)}%</span>
                 </div>
                 <ProgressBar value={progressValue} className="h-3" label="Analysis progress" />
-                <p className="text-sm text-slate-200">{liveProgress.detail || stepLabel(progressValue)}</p>
+                <p className="text-sm text-slate-200">{sanitizeText(liveProgress.detail || stepLabel(progressValue))}</p>
                 <p className="sr-only" role="status" aria-live="polite">
                   Analysis progress {Math.round(progressValue)} percent. {liveProgress.detail}
                 </p>
@@ -327,8 +328,10 @@ export default function AnalysisDetailPage() {
                     Grade {swarmConsensus?.fairness_grade ?? gradeFromScore(report?.overall_score ?? 0)}
                   </span>
                   <p className="text-sm text-slate-200">
-                    {swarmConsensus?.executive_summary ??
-                      "FairSwarm completed analysis and assembled consensus findings from the AI swarm."}
+                    {sanitizeText(
+                      swarmConsensus?.executive_summary ??
+                      "FairSwarm completed analysis and assembled consensus findings from the AI swarm."
+                    )}
                   </p>
                   <p className="text-xs text-slate-400">
                     Agreement Score: {Math.round((swarmConsensus?.agreement_score ?? 0) * 100)}%
@@ -367,7 +370,7 @@ export default function AnalysisDetailPage() {
                     return (
                       <div key={`${recommendation.metric}-${recommendation.strategy}`} className="rounded border border-border bg-surface p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-white">{recommendation.strategy}</p>
+                          <p className="text-sm font-semibold text-white">{sanitizeText(recommendation.strategy)}</p>
                           <span
                             className={
                               difficulty === "easy"
@@ -380,7 +383,7 @@ export default function AnalysisDetailPage() {
                             {difficulty}
                           </span>
                         </div>
-                        <p className="mt-2 text-sm text-slate-300">{recommendation.description}</p>
+                        <p className="mt-2 text-sm text-slate-300">{sanitizeText(recommendation.description)}</p>
                       </div>
                     );
                   })}

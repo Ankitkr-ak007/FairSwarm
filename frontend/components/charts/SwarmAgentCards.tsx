@@ -4,6 +4,7 @@ import type { SwarmAgentResult } from "@/types";
 
 import { Card } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress";
+import { sanitizeText } from "@/lib/sanitize";
 
 type SwarmAgentCardsProps = {
   agents: SwarmAgentResult[];
@@ -23,7 +24,7 @@ export function SwarmAgentCards({ agents }: SwarmAgentCardsProps) {
           <Card key={agent.agent_name} className={`space-y-3 border ${agreementBorder(agent.confidence_score)}`}>
             <div>
               <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{agent.specialty}</p>
-              <h3 className="mt-1 text-lg font-semibold text-white">{agent.agent_name}</h3>
+              <h3 className="mt-1 text-lg font-semibold text-white">{sanitizeText(agent.agent_name)}</h3>
             </div>
 
             <div>
@@ -34,8 +35,8 @@ export function SwarmAgentCards({ agents }: SwarmAgentCardsProps) {
               <ProgressBar value={agent.confidence_score * 100} className="h-2" label={`${agent.agent_name} confidence`} />
             </div>
 
-            <p className="text-sm text-slate-200">{agent.top_finding}</p>
-            <p className="text-xs text-slate-400">{agent.recommended_action}</p>
+            <p className="text-sm text-slate-200">{sanitizeText(agent.top_finding)}</p>
+            <p className="text-xs text-slate-400">{sanitizeText(agent.recommended_action)}</p>
           </Card>
         ))}
       </div>
@@ -52,11 +53,11 @@ export function SwarmAgentCards({ agents }: SwarmAgentCardsProps) {
         <tbody>
           {agents.map((agent) => (
             <tr key={`${agent.agent_name}-fallback`}>
-              <td>{agent.agent_name}</td>
-              <td>{agent.specialty}</td>
+              <td>{sanitizeText(agent.agent_name)}</td>
+              <td>{sanitizeText(agent.specialty)}</td>
               <td>{Math.round(agent.confidence_score * 100)}%</td>
-              <td>{agent.top_finding}</td>
-              <td>{agent.recommended_action}</td>
+              <td>{sanitizeText(agent.top_finding)}</td>
+              <td>{sanitizeText(agent.recommended_action)}</td>
             </tr>
           ))}
         </tbody>

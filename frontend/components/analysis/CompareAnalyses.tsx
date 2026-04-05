@@ -6,6 +6,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { analysisApi, getAnalysis, normalizeApiError } from "@/lib/api";
+import { sanitizeText } from "@/lib/sanitize";
 import type { AnalysisDetailResponse, MetricResult } from "@/types";
 
 import { Card } from "@/components/ui/card";
@@ -205,7 +206,7 @@ export function CompareAnalyses({ defaultLeftId }: CompareAnalysesProps) {
                   const improved = row.delta >= 0;
                   return (
                     <tr key={row.metric} className="border-t border-border/70">
-                      <td className="py-2 text-slate-200">{row.metric}</td>
+                      <td className="py-2 text-slate-200">{sanitizeText(row.metric)}</td>
                       <td className="py-2">{row.left.toFixed(4)}</td>
                       <td className="py-2">{row.right.toFixed(4)}</td>
                       <td className={improved ? "py-2 text-accent" : "py-2 text-danger"}>
@@ -224,7 +225,7 @@ export function CompareAnalyses({ defaultLeftId }: CompareAnalysesProps) {
               <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Recommendations Added</p>
               <ul className="mt-2 space-y-1 text-sm text-slate-200">
                 {recommendationDiff.added.length ? (
-                  recommendationDiff.added.map((item) => <li key={item}>+ {item}</li>)
+                  recommendationDiff.added.map((item) => <li key={item}>+ {sanitizeText(item)}</li>)
                 ) : (
                   <li className="text-slate-400">No new recommendations.</li>
                 )}
@@ -234,7 +235,7 @@ export function CompareAnalyses({ defaultLeftId }: CompareAnalysesProps) {
               <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Recommendations Removed</p>
               <ul className="mt-2 space-y-1 text-sm text-slate-200">
                 {recommendationDiff.removed.length ? (
-                  recommendationDiff.removed.map((item) => <li key={item}>- {item}</li>)
+                  recommendationDiff.removed.map((item) => <li key={item}>- {sanitizeText(item)}</li>)
                 ) : (
                   <li className="text-slate-400">No removed recommendations.</li>
                 )}

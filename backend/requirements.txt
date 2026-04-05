@@ -3,6 +3,7 @@ uvicorn[standard]==0.27.0
 python-multipart==0.0.7
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 slowapi==0.1.9
 aif360==0.6.1
 fairlearn==0.10.0
@@ -12,9 +13,16 @@ numpy==1.26.3
 scipy==1.12.0
 supabase==2.3.4
 python-dotenv==1.0.1
-httpx==0.26.0
+httpx==0.25.2
 websockets==12.0
 pydantic[email]==2.5.3
+pydantic-settings==2.1.0
 reportlab==4.1.0
 matplotlib==3.8.4
 openpyxl==3.1.2
+pytest==8.3.2
+pytest-asyncio==0.23.8
+pytest-mock==3.14.0
+pytest-cov==5.0.0
+ruff==0.6.9
+mypy==1.11.2

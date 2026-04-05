@@ -75,14 +75,10 @@ export default function LoginPage() {
     try {
       const response = await authApi.login(values);
       const payload = response.data as {
-        access_token: string;
-        csrf_token?: string;
         user?: { id: string; email: string; full_name?: string | null; organization?: string | null };
       };
 
       setApiAuth({
-        accessToken: payload.access_token,
-        csrfToken: payload.csrf_token,
         user: payload.user,
       });
 

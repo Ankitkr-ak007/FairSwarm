@@ -52,6 +52,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content="default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+        />
+      </head>
       <body className={`${spaceGrotesk.variable} min-h-screen bg-background font-sans antialiased`}>
         <a href="#main-content" className="skip-link">
           Skip to main content
