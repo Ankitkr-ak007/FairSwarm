@@ -3,7 +3,52 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 4 11 20;
+    --surface: 10 22 40;
+    --card: 15 31 56;
+    --border: 26 48 80;
+    --primary: 0 102 255;
+    --secondary: 0 212 255;
+    --accent: 0 255 136;
+    --danger: 255 59 59;
+    --warning: 255 170 0;
+    --foreground: 241 245 249;
+  }
+
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  html,
   body {
-    @apply bg-background text-white font-sans;
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-slate-100 font-sans;
+    background-color: rgb(var(--background));
+  }
+
+  a {
+    @apply text-secondary transition-colors;
+  }
+
+  a:hover {
+    @apply text-primary;
+  }
+}
+
+@layer components {
+  .fs-shell {
+    @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8;
+  }
+
+  .fs-section-title {
+    @apply text-sm font-semibold uppercase tracking-[0.2em] text-slate-400;
+  }
+
+  .fs-card {
+    @apply rounded-xl border border-border bg-card;
   }
 }

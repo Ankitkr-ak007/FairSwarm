@@ -14,7 +14,7 @@ export function ProgressBar({ value, className }: ProgressBarProps) {
       value={value}
     >
       <Progress.Indicator
-        className="h-full bg-gradient-to-r from-primary to-accent transition-transform duration-300"
+        className="h-full bg-primary transition-transform duration-300"
         style={{ transform: `translateX(-${100 - Math.max(0, Math.min(value, 100))}%)` }}
       />
     </Progress.Root>

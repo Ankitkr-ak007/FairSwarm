@@ -17,6 +17,7 @@ export function MetricTable({ metrics }: MetricTableProps) {
             <th className="py-3">Threshold</th>
             <th className="py-3">Status</th>
             <th className="py-3">Severity</th>
+            <th className="py-3">Explanation</th>
           </tr>
         </thead>
         <tbody>
@@ -25,8 +26,13 @@ export function MetricTable({ metrics }: MetricTableProps) {
               <td className="py-3 font-medium text-slate-200">{metric.metric_name}</td>
               <td className="py-3">{metric.value.toFixed(4)}</td>
               <td className="py-3">[{metric.threshold_min}, {metric.threshold_max}]</td>
-              <td className="py-3">{metric.is_fair ? "Fair" : "Biased"}</td>
+              <td className="py-3">
+                <span className={metric.is_fair ? "text-accent" : "text-danger"}>
+                  {metric.is_fair ? "Pass" : "Fail"}
+                </span>
+              </td>
               <td className="py-3 capitalize">{metric.severity}</td>
+              <td className="py-3 text-xs text-slate-400">{metric.plain_english_explanation}</td>
             </tr>
           ))}
         </tbody>
