@@ -126,3 +126,7 @@ $RECYCLE.BIN/
 .vscode/
 .idea/
 *.iml
+
+# Documentation / Internal Files
+DEPLOY_VERCEL_RENDER.md
+CHECKLIST.md
