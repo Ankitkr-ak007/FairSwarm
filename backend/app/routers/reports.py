@@ -114,7 +114,7 @@ def _issue_share_token(analysis_id: str, expires_at: datetime) -> str:
         "exp": expires_at,
         "iat": datetime.now(UTC),
     }
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return str(jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM))
 
 
 def _verify_share_token(token: str) -> str:

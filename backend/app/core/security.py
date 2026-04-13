@@ -101,7 +101,7 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
             "token_type": "access",
         }
     )
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return str(jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM))
 
 
 def create_refresh_token(data: dict[str, Any], expires_days: int = 7) -> str:
@@ -116,7 +116,7 @@ def create_refresh_token(data: dict[str, Any], expires_days: int = 7) -> str:
             "token_type": "refresh",
         }
     )
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return str(jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM))
 
 
 def decode_token(token: str) -> TokenData:

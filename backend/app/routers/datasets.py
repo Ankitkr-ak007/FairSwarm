@@ -45,7 +45,7 @@ def _parse_extension(filename: str) -> str:
 
 def _serialize_records(df: pd.DataFrame, limit: int) -> list[dict[str, Any]]:
 	trimmed = df.head(limit).replace({np.nan: None})
-	return trimmed.to_dict(orient="records")
+	return [dict(x) for x in trimmed.to_dict(orient="records")] # type: ignore
 
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
@@ -177,7 +177,7 @@ async def list_datasets(
 		supabase = get_supabase_client()
 		result = (
 			supabase.table("datasets")
-			.select("id,name,file_size,row_count,sensitive_columns,status,created_at", count="exact")
+			.select("id,name,file_size,row_count,sensitive_columns,status,created_at", count="exact")  # type: ignore[arg-type]
 			.eq("user_id", current_user["id"])
 			.neq("status", "deleted")
 			.order("created_at", desc=True)

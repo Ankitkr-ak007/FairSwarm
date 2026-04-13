@@ -4,6 +4,7 @@ const STATE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const TOKEN_COOKIE = "fairswarm_access_token";
 const REFRESH_COOKIE = "fairswarm_refresh_token";
 const CSRF_COOKIE = "csrf_token";
+const TRAILING_SLASH_PATHS = new Set(["analysis", "datasets", "reports"]);
 
 function backendBaseUrl(): string {
   return (
@@ -67,7 +68,8 @@ function clearAuthCookies(response: NextResponse) {
 
 async function proxyRequest(request: NextRequest, pathParts: string[]) {
   const targetPath = pathParts.join("/");
-  const targetUrl = `${backendBaseUrl()}/${targetPath}${request.nextUrl.search}`;
+  const backendPath = TRAILING_SLASH_PATHS.has(targetPath) ? `${targetPath}/` : targetPath;
+  const targetUrl = `${backendBaseUrl()}/${backendPath}${request.nextUrl.search}`;
 
   if (STATE_METHODS.has(request.method) && !isAuthPath(targetPath)) {
     const csrfCookie = request.cookies.get(CSRF_COOKIE)?.value;

@@ -156,9 +156,9 @@ async def analyze_with_swarm(
         "profile": dataset_profile,
     }
     sample_data = {
-        "sample_rows": dataset_profile.get("sample_rows", []),
-        "null_counts": dataset_profile.get("null_counts", {}),
-        "unique_counts": dataset_profile.get("unique_counts", {}),
+        "sample_rows": (dataset_profile or {}).get("sample_rows", []),
+        "null_counts": (dataset_profile or {}).get("null_counts", {}),
+        "unique_counts": (dataset_profile or {}).get("unique_counts", {}),
     }
 
     try:
@@ -308,4 +308,4 @@ async def get_swarm_results_alias(
     analysis_id: str,
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
-    return await get_swarm_status(request, analysis_id, current_user)
+    return await get_swarm_status(request, analysis_id, current_user)  # type: ignore[no-any-return]

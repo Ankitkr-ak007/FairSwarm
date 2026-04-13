@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from datetime import UTC, datetime
-from typing import Callable
+from typing import Any, Callable
 
 from fastapi import HTTPException, Request, Response, status
 from jose import JWTError, jwt
@@ -39,7 +39,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
             "img-src 'self' data: blob:;"
         )
-        return response
+        return response  # type: ignore[no-any-return]
 
 
 class InputSanitizationMiddleware(BaseHTTPMiddleware):
@@ -69,7 +69,7 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
             self._validate_csrf(request)
         except HTTPException as exc:
             return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-        return await call_next(request)
+        return await call_next(request)  # type: ignore[no-any-return]
 
     def _validate_request_size(self, request: Request) -> None:
         content_length = request.headers.get("content-length")
@@ -144,7 +144,7 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
                 )
 
     async def _set_request_body(self, request: Request, body: bytes) -> None:
-        async def receive() -> dict[str, bytes | bool]:
+        async def receive() -> dict[str, Any]:
             return {"type": "http.request", "body": body, "more_body": False}
 
         request._receive = receive  # type: ignore[attr-defined]
@@ -203,7 +203,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         except Exception as exc:
             logger.warning("Failed to write audit log: %s", mask_sensitive_text(str(exc)))
 
-        return response
+        return response  # type: ignore[no-any-return]
 
     def _extract_user_id(self, request: Request) -> str | None:
         auth_header = request.headers.get("authorization", "")

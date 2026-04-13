@@ -338,7 +338,7 @@ async def list_analyses(
 		supabase = get_supabase_client()
 		result = (
 			supabase.table("analyses")
-			.select("id,dataset_id,status,progress,created_at,completed_at", count="exact")
+			.select("id,dataset_id,status,progress,created_at,completed_at", count="exact")  # type: ignore[arg-type]
 			.eq("user_id", current_user["id"])
 			.order("created_at", desc=True)
 			.range(offset, offset + page_size - 1)
